@@ -172,7 +172,7 @@ def plot_resistividad(df: pd.DataFrame, titulo_proyecto="PROYECTO SOCODA"):
 
     plt.tight_layout()
     plt.show()
-    
+
 
 def plot_resistividad_to_buffer(df: pd.DataFrame, titulo_proyecto="PROYECTO SOCODA") -> io.BytesIO:
     patron = re.compile(r"^Perfil\s+(\d)\s*\[Ωm\]$", re.IGNORECASE)
@@ -184,39 +184,53 @@ def plot_resistividad_to_buffer(df: pd.DataFrame, titulo_proyecto="PROYECTO SOCO
     fig, ax = plt.subplots(figsize=(10, 5.5))
     x = df["Distancia (m)"]
 
-    ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")))
+    # Formato con separador latino
+    ax.yaxis.set_major_formatter(FuncFormatter(
+        lambda y, _: f"{y:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    ))
 
+    # Dibujar perfiles con anotaciones
     for col in cols_perfiles:
-        ax.plot(x, df[col], marker="o", linewidth=2.5, label=col)
+        ax.plot(x, df[col], marker="o", linewidth=2.0, label=col)
+        for xi, yi in zip(x, df[col]):
+            ax.annotate(f"{yi:.0f}", (xi, yi), textcoords="offset points",
+                        xytext=(0, 5), ha="center", fontsize=8, color="black")
 
+    # RUTA PROMEDIO con línea más gruesa
     if "Promedio [Ωm]" in df.columns:
-        ax.plot(x, df["Promedio [Ωm]"], linewidth=2.0, label="RUTA PROMEDIO [Ωm]")
-    if "BOX-COX [Ωm]" in df.columns:
-        ax.plot(x, df["BOX-COX [Ωm]"], linewidth=2.0, label="BOX-COX  [Ωm]")
+        ax.plot(x, df["Promedio [Ωm]"], linewidth=3.5, label="RUTA PROMEDIO [Ωm]")
 
+    # BOX-COX con línea más gruesa
+    if "BOX-COX [Ωm]" in df.columns:
+        ax.plot(x, df["BOX-COX [Ωm]"], linewidth=3.5, label="BOX-COX [Ωm]")
+
+    # Configuración de ejes y título
     ax.set_title(f"RESISTIVIDAD DE TERRENO - {titulo_proyecto}", fontsize=18, loc='center')
     ax.set_xlabel("Separación entre electrodos [m]")
     ax.set_ylabel("Resistividad [Ωm]")
     ax.grid(True, which="both", alpha=0.25)
     ax.set_xlim((min(x)-1), (max(x)+1))
 
-    # Ajuste de límites Y
+    # Ajuste dinámico del eje Y
     series = cols_perfiles + [c for c in ["Promedio [Ωm]", "BOX-COX [Ωm]"] if c in df]
     y_all = pd.concat([df[c] for c in series])
     y_min, y_max = float(y_all.min()), float(y_all.max())
     m = 0.08 * (y_max - y_min if y_max > y_min else max(1.0, y_max))
     ax.set_ylim(0, y_max + m)
 
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=3 if len(series) >= 5 else 2, frameon=False)
+    # Leyenda
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.15),
+              ncol=3 if len(series) >= 5 else 2, frameon=False)
     plt.tight_layout()
 
-    # ---- guardar en buffer ----
+    # Guardar en buffer
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=150, bbox_inches="tight")
-    plt.close(fig)          # importante para no consumir memoria en servidores
-    buf.seek(0)             # rebobinar para lectura posterior
+    plt.close(fig)
+    buf.seek(0)
     return buf
-    
+
+
 
 # Configuración de plantilla de Word (una sola instancia)
 #template_path = os.path.join('templates', 'templateVLF3FS3TR.docx')
@@ -349,7 +363,23 @@ elif st.session_state.step == 2:
         #cantidad_tramos = st.session_state.data.get('cantidadTramos')
         #template_path = obtener_template_path(tipo_tramos, cantidad_tramos)
         
-        template_path = 'templates/templateRES4PR.docx'
+        nroPerfiles = int(st.session_state.data['cantidadPerfiles'])
+    
+        if nroPerfiles == 1:
+        
+            template_path = 'templates/templateRES1PR.docx'
+            
+        elif nroPerfiles == 2:
+            
+            template_path = 'templates/templateRES2PR.docx'
+            
+        elif nroPerfiles == 3:
+            
+            template_path = 'templates/templateRES3PR.docx'
+            
+        elif nroPerfiles == 4:
+            
+            template_path = 'templates/templateRES4PR_V2.docx'
         
         # Cargar la plantilla en el estado de sesión
         try:
