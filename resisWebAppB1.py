@@ -379,7 +379,7 @@ elif st.session_state.step == 2:
             
         elif nroPerfiles == 4:
             
-            template_path = 'templates/templateRES4PR_V2.docx'
+            template_path = 'templates/templateRES4PR.docx'
         
         # Cargar la plantilla en el estado de sesión
         try:
@@ -1179,6 +1179,8 @@ elif st.session_state.step == 3:
         
         # Generar el buffer PNG
         buf = plot_resistividad_to_buffer(df_Tabla_Medidas_Resistividad, titulo_proyecto=f'{var_Titulo}')
+        
+        datos['imgCurvaResistividad'] = InlineImage(st.session_state.doc, buf, Cm(18))
 
         # Opción 1: pasar bytes directamente a Streamlit
         png_bytes = buf.getvalue()
